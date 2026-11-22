@@ -81,11 +81,11 @@ class SettingsScreen extends StatelessWidget {
           Text('حریم خصوصی',
               style: text.titleSmall?.copyWith(color: scheme.primary)),
           const SizedBox(height: 8),
-          ListTile(
+          const ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.lock_outline_rounded),
-            title: const Text('فقط اعضای خانواده'),
-            subtitle: const Text(
+            leading: Icon(Icons.lock_outline_rounded),
+            title: Text('فقط اعضای خانواده'),
+            subtitle: Text(
               'پیام‌ها فقط برای اعضای دعوت‌شده نمایش داده می‌شود.',
             ),
           ),
