@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/backend.dart';
 import '../state/app_state.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,6 +15,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
+  bool _loading = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -22,14 +25,27 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    if (_formKey.currentState?.validate() ?? false) {
-      AppScope.of(context).login();
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final app = AppScope.of(context);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await app.signIn(_email.text, _password.text);
+    } on BackendException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'ورود انجام نشد');
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final app = AppScope.of(context);
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
@@ -119,18 +135,34 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? 'رمز عبور را وارد کنید'
                           : null,
                     ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 14),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: scheme.error),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     FilledButton(
-                      onPressed: _submit,
-                      child: const Text('ورود'),
+                      onPressed: _loading ? null : _submit,
+                      child: _loading
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2.4),
+                            )
+                          : const Text('ورود'),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'نسخه‌ی نمایشی: ورود واقعی بعد از وصل شدن سرور فعال می‌شود.',
-                      textAlign: TextAlign.center,
-                      style: text.bodySmall
-                          ?.copyWith(color: scheme.onSurfaceVariant),
-                    ),
+                    if (app.backend.isDemo) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        'نسخه‌ی نمایشی: به سرور وصل نیست و هر ایمیل و رمزی قبول می‌شود.',
+                        textAlign: TextAlign.center,
+                        style: text.bodySmall
+                            ?.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                    ],
                   ],
                 ),
               ),

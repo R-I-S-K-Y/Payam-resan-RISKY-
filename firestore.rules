@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// قوانین امنیتی Firestore برای پیام‌رسان خانواده.
+//
+// ۱) فقط ایمیل‌هایی که مالک در مجموعه‌ی allowed_emails ثبت کرده می‌توانند
+//    چیزی بخوانند یا بنویسند (حتی اگر کسی با کلید عمومی اپ ثبت‌نام کند).
+// ۲) هر گفتگو فقط برای اعضای خودش قابل خواندن و نوشتن است.
+// ۳) هیچ سندی از اپ حذف نمی‌شود و پیام‌ها قابل ویرایش نیستند.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+
+    function isFamily() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/allowed_emails/$(request.auth.token.email));
+    }
+
+    function isMember(chatId) {
+      return isFamily()
+        && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.memberIds;
+    }
+
+    // فهرست ایمیل‌های مجاز فقط از کنسول Firebase مدیریت می‌شود.
+    match /allowed_emails/{email} {
+      allow read, write: if false;
+    }
+
+    match /users/{uid} {
+      allow read: if isFamily();
+      allow create, update: if isFamily()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'email'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40;
+      allow delete: if false;
+    }
+
+    match /chats/{chatId} {
+      allow get: if isFamily()
+        && (resource == null || request.auth.uid in resource.data.memberIds);
+      allow list: if isFamily()
+        && request.auth.uid in resource.data.memberIds;
+
+      allow create: if isFamily()
+        && request.resource.data.memberIds is list
+        && request.auth.uid in request.resource.data.memberIds
+        && request.resource.data.memberIds.size() >= 2
+        && request.resource.data.memberIds.size() <= 50
+        && request.resource.data.title is string
+        && request.resource.data.title.size() <= 60
+        && request.resource.data.isGroup is bool;
+
+      // اعضا فقط خلاصه‌ی آخرین پیام و وضعیت خواندن را عوض می‌کنند.
+      allow update: if isFamily()
+        && request.auth.uid in resource.data.memberIds
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['lastText', 'lastTime', 'lastSenderId', 'lastReadBy']);
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isMember(chatId);
+
+        allow create: if isMember(chatId)
+          && request.resource.data.keys().hasOnly(['senderId', 'text', 'time', 'readBy'])
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 4000
+          && request.resource.data.time == request.time
+          && request.resource.data.readBy == [request.auth.uid];
+
+        // فقط اضافه کردن شناسه‌ی خودِ کاربر به readBy.
+        allow update: if isMember(chatId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy'])
+          && request.resource.data.readBy.hasAll(resource.data.readBy)
+          && request.resource.data.readBy.hasAll([request.auth.uid])
+          && request.resource.data.readBy.size() <= resource.data.readBy.size() + 1;
+
+        allow delete: if false;
+      }
+    }
+  }
+}

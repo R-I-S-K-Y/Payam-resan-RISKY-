@@ -93,7 +93,7 @@ class SettingsScreen extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () {
               Navigator.of(context).popUntil((r) => r.isFirst);
-              app.logout();
+              app.signOut();
             },
             icon: const Icon(Icons.logout_rounded),
             label: const Text('خروج'),

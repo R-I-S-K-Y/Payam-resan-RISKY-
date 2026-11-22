@@ -5,6 +5,7 @@ import '../state/app_state.dart';
 import '../utils/fa.dart';
 import '../widgets/avatar.dart';
 import 'chat_screen.dart';
+import 'new_chat_sheet.dart';
 import 'settings_screen.dart';
 
 class ChatsScreen extends StatelessWidget {
@@ -13,9 +14,11 @@ class ChatsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
-    final chats = [...app.chats]..sort((a, b) {
-        final at = a.last?.time ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final bt = b.last?.time ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final scheme = Theme.of(context).colorScheme;
+    final chats = app.chats
+      ..sort((a, b) {
+        final at = a.previewTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bt = b.previewTime ?? DateTime.fromMillisecondsSinceEpoch(0);
         return bt.compareTo(at);
       });
 
@@ -32,12 +35,28 @@ class ChatsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.only(top: 4, bottom: 24),
-        itemCount: chats.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 2),
-        itemBuilder: (context, i) => _ChatTile(chat: chats[i]),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => showNewChatSheet(context),
+        icon: const Icon(Icons.edit_rounded),
+        label: const Text('گفتگوی جدید'),
       ),
+      body: chats.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(
+                  'هنوز گفتگویی نیست.\nبا دکمه‌ی «گفتگوی جدید» شروع کنید.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: scheme.onSurfaceVariant, height: 1.7),
+                ),
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.only(top: 4, bottom: 96),
+              itemCount: chats.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 2),
+              itemBuilder: (context, i) => _ChatTile(chat: chats[i]),
+            ),
     );
   }
 }
@@ -50,8 +69,7 @@ class _ChatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final last = chat.last;
-    final preview = last == null ? '' : last.text;
+    final time = chat.previewTime;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -70,7 +88,7 @@ class _ChatTile extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
       ),
       subtitle: Text(
-        preview,
+        chat.preview,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(color: scheme.onSurfaceVariant),
@@ -79,32 +97,23 @@ class _ChatTile extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (last != null)
+          if (time != null)
             Text(
-              timeLabel(last.time),
+              timeLabel(time),
               style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
             ),
-          const SizedBox(height: 6),
-          if (chat.unread > 0)
+          const SizedBox(height: 8),
+          if (chat.hasUnread)
             Container(
-              constraints: const BoxConstraints(minWidth: 22),
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              width: 12,
+              height: 12,
               decoration: BoxDecoration(
                 color: scheme.primary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                faDigits('${chat.unread}'),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: scheme.onPrimary,
-                ),
+                shape: BoxShape.circle,
               ),
             )
           else
-            const SizedBox(height: 22),
+            const SizedBox(height: 12),
         ],
       ),
       onTap: () {

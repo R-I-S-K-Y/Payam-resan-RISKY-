@@ -17,9 +17,17 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
   final _scroll = ScrollController();
+  AppState? _app;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _app = AppScope.of(context);
+  }
 
   @override
   void dispose() {
+    _app?.closeChat(widget.chat);
     _controller.dispose();
     _scroll.dispose();
     super.dispose();
@@ -28,7 +36,13 @@ class _ChatScreenState extends State<ChatScreen> {
   void _send() {
     final text = _controller.text;
     if (text.trim().isEmpty) return;
-    AppScope.of(context).sendMessage(widget.chat, text);
+    final app = AppScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    app.sendMessage(widget.chat, text).catchError((Object _) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('ارسال پیام انجام نشد')),
+      );
+    });
     _controller.clear();
     if (_scroll.hasClients) {
       _scroll.animateTo(
@@ -99,24 +113,31 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              controller: _scroll,
-              reverse: true,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final message = messages[messages.length - 1 - index];
-                final isMine = message.senderId == app.me.id;
-                final sender = isMine ? null : _member(message.senderId);
-                return MessageBubble(
-                  key: ValueKey(message.id),
-                  message: message,
-                  isMine: isMine,
-                  senderName: chat.isGroup ? sender?.name : null,
-                  senderColor: sender?.color,
-                );
-              },
-            ),
+            child: messages.isEmpty
+                ? Center(
+                    child: Text(
+                      'هنوز پیامی نیست. اولین پیام را بفرستید 🌿',
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scroll,
+                    reverse: true,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final message = messages[messages.length - 1 - index];
+                      final isMine = message.senderId == app.me.id;
+                      final sender = isMine ? null : _member(message.senderId);
+                      return MessageBubble(
+                        key: ValueKey(message.id),
+                        message: message,
+                        isMine: isMine,
+                        senderName: chat.isGroup ? sender?.name : null,
+                        senderColor: sender?.color,
+                      );
+                    },
+                  ),
           ),
           _Composer(controller: _controller, onSend: _send),
         ],
@@ -148,6 +169,12 @@ class _Composer extends StatelessWidget {
                   controller: controller,
                   minLines: 1,
                   maxLines: 5,
+                  maxLength: 4000,
+                  buildCounter: (_,
+                          {required currentLength,
+                          required isFocused,
+                          maxLength}) =>
+                      null,
                   textInputAction: TextInputAction.newline,
                   keyboardType: TextInputType.multiline,
                   decoration: InputDecoration(
