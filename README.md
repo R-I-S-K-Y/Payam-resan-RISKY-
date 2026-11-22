@@ -54,7 +54,7 @@ flutter build apk --release   # خروجی: build/app/outputs/flutter-apk/app-re
 ساخت خودکار هم روی GitHub Actions انجام می‌شود:
 
 - **Android CI** (`.github/workflows/android.yml`): در هر push و pull request، کد را تحلیل می‌کند، تست‌ها را اجرا می‌کند و APK را به‌عنوان Artifact می‌سازد.
-- **Release** (`.github/workflows/release.yml`): با زدن یک تگ مثل `v0.1.0`، APK و فایل SHA-256 را می‌سازد و در Releases منتشر می‌کند.
+- **Release** (`.github/workflows/release.yml`): با زدن یک تگ مثل `v0.1.0` یا پوش یک شاخه مثل `release/v0.1.0`، APK و فایل SHA-256 را می‌سازد و در Releases منتشر می‌کند.
 
 ---
 
