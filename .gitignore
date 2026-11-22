@@ -1,0 +1,41 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+pubspec.lock.bak
+coverage/
+
+# Android (generated in CI for now)
+/android/
+**/android/**/local.properties
+**/android/**/gradle-wrapper.jar
+**/android/.gradle/
+**/android/captures/
+**/android/key.properties
+*.jks
+*.keystore
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
+
+# Secrets and service config: never commit these
+.env
+.env.*
+*.pem
+*.p12
+*.key
+secrets.*
+google-services.json
+GoogleService-Info.plist
+firebase-debug.log
+.firebase/
+service-account*.json
