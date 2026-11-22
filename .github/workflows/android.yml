@@ -47,8 +47,14 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build release APK
-        run: flutter build apk --release
+      - name: Build release APK (with retry)
+        run: |
+          n=0
+          until flutter build apk --release; do
+            n=$((n+1))
+            if [ "$n" -ge 3 ]; then exit 1; fi
+            sleep 20
+          done
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
