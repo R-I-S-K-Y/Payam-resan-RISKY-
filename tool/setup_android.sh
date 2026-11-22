@@ -20,6 +20,22 @@ sed -i 's/android:label="[^"]*"/android:label="پیام‌رسان خانواد�
 app_gradle="android/app/build.gradle.kts"
 settings_gradle="android/settings.gradle.kts"
 
+# راه‌حل موقت: lint اندروید داخل بعضی پلاگین‌های Flutter خطای داخلی می‌دهد
+# (NoSuchMethodError در JavaDocParser) و بیلد Release را می‌شکند.
+build_gradle="android/build.gradle.kts"
+if ! grep -q 'lintVital' "${build_gradle}"; then
+  cat >> "${build_gradle}" <<'GRADLE'
+
+subprojects {
+    tasks.configureEach {
+        if (name.startsWith("lintVital")) {
+            enabled = false
+        }
+    }
+}
+GRADLE
+fi
+
 # Firebase حداقل به minSdk 23 نیاز دارد.
 sed -i 's/minSdk = flutter.minSdkVersion/minSdk = maxOf(23, flutter.minSdkVersion)/' "${app_gradle}"
 
